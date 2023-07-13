@@ -1,15 +1,25 @@
 #!/usr/bin/python3
 """ Console Module """
 import cmd
+import sys
+import json
+import os
 from models import storage
 from models.base_model import BaseModel
 from models.user import User
+from models.place import Place
+from models.state import State
+from models.city import City
+from models.amenity import Amenity
+from models.review import Review
 
 class HBNBCommand(cmd.Cmd):
     """ Contains the functionality for the HBNB console"""
 
     prompt = "(hbnb) "
-    classes = {'BaseModel': BaseModel, 'User': User}
+    classes = {'BaseModel': BaseModel, 'User': User, 'City': City,
+               'Place': Place, 'Amenity': Amenity, 'Review': Review,
+               'State': State}
 
     def do_quit(self, arg):
         """Quit command to exit the program."""
@@ -49,7 +59,7 @@ class HBNBCommand(cmd.Cmd):
         elif arg.split()[0] not in self.classes:
             print("** class doesn't exist **")
             return
-        elif len(arg.split()) > 1:
+        elif len(arg.split(" ")) > 1:
             key = arg.split()[0] + '.' + arg.split()[1]
             if key in storage.all():
                 i = storage.all()
@@ -64,7 +74,7 @@ class HBNBCommand(cmd.Cmd):
         if len(arg) == 0:
             print("** class name missing **")
             return
-        arg_list = arg.split()
+        arg_list = arg.split(" ")
         try:
             obj = eval(arg_list[0])
         except Exception:
@@ -93,7 +103,7 @@ class HBNBCommand(cmd.Cmd):
 
     def do_update(self, arg):
         """ Method to update JSON file"""
-        arg = arg.split()
+        arg = arg.split(" ")
         if len(arg) == 0:
             print('** class name missing **')
             return
