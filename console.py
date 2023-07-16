@@ -35,7 +35,8 @@ class HBNBCommand(cmd.Cmd):
         pass
 
     def do_create(self, arg):
-        """ Create a new instance """
+        """Usage: create <class>
+        Create a new class instance and print its id."""
         if len(arg) == 0:
             print('** class name missing **')
             return
@@ -51,7 +52,8 @@ class HBNBCommand(cmd.Cmd):
                     print("** class doesn't exist **")
 
     def do_show(self, arg):
-        """ Method to print instance """
+        """ Usage: show <class> <id> or <class>.show(<id>)
+        Display the string representation of a class instance of a given id. """
         if len(arg) == 0:
             print('** class name missing **')
             return
@@ -69,7 +71,8 @@ class HBNBCommand(cmd.Cmd):
             print('** instance id missing **')
 
     def do_destroy(self, arg):
-        """ Method to delete instance with class and id """
+        """Usage: destroy <class> <id> or <class>.destroy(<id>)
+        Delete a class instance of a given id."""
         if len(arg) == 0:
             print("** class name missing **")
             return
@@ -92,7 +95,9 @@ class HBNBCommand(cmd.Cmd):
                 return
 
     def do_all(self, arg):
-        """ Method to print all instances """
+        """Usage: all or all <class> or <class>.all()
+        Display string representations of all instances of a given class.
+        If no class is specified, displays all instantiated objects."""
         if len(arg) == 0:
             print([str(a) for a in storage.all().values()])
         elif arg not in self.classes:
@@ -101,7 +106,11 @@ class HBNBCommand(cmd.Cmd):
             print([str(a) for b, a in storage.all().items() if arg in b])
 
     def do_update(self, arg):
-        """ Method to update JSON file"""
+        """Usage: update <class> <id> <attribute_name> <attribute_value> or
+       <class>.update(<id>, <attribute_name>, <attribute_value>) or
+       <class>.update(<id>, <dictionary>)
+        Update a class instance of a given id by adding or updating
+        a given attribute key/value pair or dictionary."""
         if not arg:
             print("** class name missing **")
             return
@@ -137,7 +146,8 @@ class HBNBCommand(cmd.Cmd):
         storage.save()
 
     def do_count(self, class_n):
-        """ Method counts instances of a certain class """
+        """Usage: count <class> or <class>.count()
+        Retrieve the number of instances of a given class."""
         count_instance = 0
         for instance_object in storage.all().values():
             if instance_object.__class__.__name__ == class_n:
