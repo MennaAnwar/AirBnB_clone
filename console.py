@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """ Console Module """
 import cmd
-import re
+import shlex
 import json
 from models import storage
 from models.base_model import BaseModel
@@ -137,53 +137,80 @@ class HBNBCommand(cmd.Cmd):
                 count_instance += 1
         print(count_instance)
 
+    def update_dict(self, arg):
+        """Update from dictionary."""
+        if not arg:
+            print("** class name missing **")
+            return
+        dict = "{" + arg.split("{")[1]
+        args = shlex.split(arg)
+        storage.reload()
+        obj = storage.all()
+
+        if args[0] not in self.classes.keys():
+            print("** class doesn't exist **")
+            return
+        if len(args) == 1:
+            print("** instance id missing **")
+            return
+        try:
+            key = args[0] + "." + args[1]
+            obj[key]
+        except KeyError:
+            print("** no instance found **")
+            return
+        if (dict == "{"):
+            print("** attribute name missing **")
+            return
+        dict = dict.replace("\'", "\"")
+        dict = json.loads(dict)
+        obj_inst = obj[key]
+        for k in dict:
+            if hasattr(obj_inst, k):
+                d_type = type(getattr(obj_inst, k))
+                setattr(obj_inst, k, dict[k])
+            else:
+                setattr(obj_inst, k, dict[k])
+        storage.save()
+
     def default(self, arg):
-        """Default behavior for cmd module when input is invalid"""
-        argdict = {
+        """for commands: class.syntax()"""
+        args_dict = {
             "all": self.do_all,
+            "count": self.do_count,
             "show": self.do_show,
             "destroy": self.do_destroy,
-            "count": self.do_count,
-            "update": self.do_update
+            "update": self.do_update,
         }
-        match = re.search(r"\.", arg)
-        if match is not None:
-            argl = [arg[:match.span()[0]], arg[match.span()[1]:]]
-            match = re.search(r"\((.*?)\)", argl[1])
-            if match is not None:
-                command = [argl[1][:match.span()[0]], match.group()[1:-1]]
-                if command[0] in argdict.keys():
-                    call = "{} {}".format(argl[0], command[1])
-                    return argdict[command[0]](call)
-        print("*** Unknown syntax: {}".format(arg))
-        return False
+        args = arg.strip()
+        val = args.split(".")
+        if len(val) != 2:
+            cmd.Cmd.default(self, args)
+            return
+        class_name = val[0]
+        cmd = val[1].split("(")[0]
+        line = ""
+        if (cmd == "update" and val[1].split("(")[1][-2] == "}"):
+            inputs = val[1].split("(")[1].split(",", 1)
+            inputs[0] = shlex.split(inputs[0])[0]
+            line = "".join(inputs)[0:-1]
+            line = class_name + " " + line
+            self.update_dict(line.strip())
+            return
 
-    def default(self, arg):
-        """For commands: class.syntax()"""
-        match = re.search(r"^(\w*)\.(\w+)(?:\(([^)]*)\))$", arg)
-        if not match:
-            return arg
-        classname = match.group(1)
-        method = match.group(2)
-        args = match.group(3)
-        match_uid_and_args = re.search('^"([^"]*)"(?:, (.*))?$', args)
-        if match_uid_and_args:
-            uid = match_uid_and_args.group(1)
-            attr_or_dict = match_uid_and_args.group(2)
-        else:
-            uid = args
-            attr_or_dict = False
-
-        attr_and_value = ""
-        if method == "update" and attr_or_dict:
-            match = re.search(
-                '^(?:"([^"]*)")?(?:, (.*))?$', attr_or_dict)
-            if match:
-                attr_and_value = (match.group(
-                    1) or "") + " " + (match.group(2) or "")
-        command = method + " " + classname + " " + uid + " " + attr_and_value
-        self.onecmd(command)
-        return command
+        try:
+            inputs = val[1].split("(")[1].split(",")
+            for num in range(len(inputs)):
+                if (num != len(inputs) - 1):
+                    line = line + " " + shlex.split(inputs[num])[0]
+                else:
+                    line = line + " " + shlex.split(inputs[num][0:-1])[0]
+        except IndexError:
+            inputs = ""
+            line = ""
+        line = class_name + line
+        if (cmd in args_dict.keys()):
+            args_dict[cmd](line.strip())
 
 
 if __name__ == "__main__":
