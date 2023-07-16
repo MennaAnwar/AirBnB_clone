@@ -158,5 +158,33 @@ class HBNBCommand(cmd.Cmd):
         print("*** Unknown syntax: {}".format(arg))
         return False
 
+    def default(self, arg):
+        """For commands: class.syntax()"""
+        match = re.search(r"^(\w*)\.(\w+)(?:\(([^)]*)\))$", arg)
+        if not match:
+            return arg
+        classname = match.group(1)
+        method = match.group(2)
+        args = match.group(3)
+        match_uid_and_args = re.search('^"([^"]*)"(?:, (.*))?$', args)
+        if match_uid_and_args:
+            uid = match_uid_and_args.group(1)
+            attr_or_dict = match_uid_and_args.group(2)
+        else:
+            uid = args
+            attr_or_dict = False
+
+        attr_and_value = ""
+        if method == "update" and attr_or_dict:
+            match = re.search(
+                '^(?:"([^"]*)")?(?:, (.*))?$', attr_or_dict)
+            if match:
+                attr_and_value = (match.group(
+                    1) or "") + " " + (match.group(2) or "")
+        command = method + " " + classname + " " + uid + " " + attr_and_value
+        self.onecmd(command)
+        return command
+
+
 if __name__ == "__main__":
     HBNBCommand().cmdloop()
