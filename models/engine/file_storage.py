@@ -9,6 +9,7 @@ from models.amenity import Amenity
 from models.place import Place
 from models.review import Review
 
+
 class FileStorage:
     """ This is a storage engine for AirBnB clone project
     Class Attributes:
@@ -35,7 +36,7 @@ class FileStorage:
             self.__objects[key] = obj
 
     def save(self):
-        """Serialize __objects to the JSON file __file_path.""" 
+        """Serialize __objects to the JSON file __file_path."""
         obj_dict = {}
 
         for key, obj in self.__objects.items():

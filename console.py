@@ -12,6 +12,7 @@ from models.city import City
 from models.amenity import Amenity
 from models.review import Review
 
+
 class HBNBCommand(cmd.Cmd):
     """ Contains the functionality for the HBNB console"""
 
@@ -32,7 +33,6 @@ class HBNBCommand(cmd.Cmd):
     def emptyline(self):
         """Do nothing upon receiving an empty line."""
         pass
-
 
     def do_create(self, arg):
         """ Create a new instance """
@@ -66,7 +66,7 @@ class HBNBCommand(cmd.Cmd):
             else:
                 print('** no instance found **')
         else:
-            print('** instance id missing **')        
+            print('** instance id missing **')
 
     def do_destroy(self, arg):
         """ Method to delete instance with class and id """
