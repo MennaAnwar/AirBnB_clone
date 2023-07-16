@@ -228,6 +228,8 @@ class HBNBCommand(cmd.Cmd):
         line = class_name + line
         if (cmd in args_dict.keys()):
             args_dict[cmd](line.strip())
+        else:
+            print("*** Unknown syntax: {}".format(arg))
 
 
 if __name__ == "__main__":
