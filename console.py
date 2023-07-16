@@ -102,32 +102,39 @@ class HBNBCommand(cmd.Cmd):
 
     def do_update(self, arg):
         """ Method to update JSON file"""
-        arg = arg.split()
-        if len(arg) == 0:
-            print('** class name missing **')
+        if not args:
+            print("** class name missing **")
             return
-        elif arg[0] not in self.classes:
+        args = shlex.split(arg)
+        storage.reload()
+        obj = storage.all()
+
+        if args[0] not in self.classes.keys():
             print("** class doesn't exist **")
             return
-        elif len(arg) == 1:
-            print('** instance id missing **')
+        if len(args) == 1:
+            print("** instance id missing **")
             return
+        try:
+            key = args[0] + "." + args[1]
+            obj[key]
+        except KeyError:
+            print("** no instance found **")
+            return
+        if (len(args) == 2):
+            print("** attribute name missing **")
+            return
+        if (len(args) == 3):
+            print("** value missing **")
+            return
+        obj_dict = obj[key].__dict__
+        if args[2] in obj_dict.keys():
+            d_type = type(obj_dict[arg[2]])
+            print(d_type)
+            obj_dict[args[2]] = type(obj_dict[args[2]])(args[3])
         else:
-            key = arg[0] + '.' + arg[1]
-            if key in storage.all():
-                if len(arg) > 2:
-                    if len(arg) == 3:
-                        print('** value missing **')
-                    else:
-                        setattr(
-                            storage.all()[key],
-                            arg[2],
-                            arg[3][1:-1])
-                        storage.all()[key].save()
-                else:
-                    print('** attribute name missing **')
-            else:
-                print('** no instance found **')
+            obj_dict[args[2]] = args[3]
+        storage.save()
 
     def do_count(self, class_n):
         """ Method counts instances of a certain class """
