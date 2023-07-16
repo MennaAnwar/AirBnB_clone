@@ -102,7 +102,7 @@ class HBNBCommand(cmd.Cmd):
 
     def do_update(self, arg):
         """ Method to update JSON file"""
-        if not args:
+        if not arg:
             print("** class name missing **")
             return
         args = shlex.split(arg)
