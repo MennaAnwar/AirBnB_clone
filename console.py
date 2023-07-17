@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 """ Console Module """
 import cmd
-import shlex
+import re
+from shlex import split
 import json
 from models import storage
 from models.base_model import BaseModel
@@ -57,11 +58,14 @@ class HBNBCommand(cmd.Cmd):
         if len(arg) == 0:
             print('** class name missing **')
             return
-        elif arg.split()[0] not in self.classes:
+        elif arg.split(" ")[0] == "":
+            print("** class name missing **")
+            return
+        elif arg.split(" ")[0] not in self.classes:
             print("** class doesn't exist **")
             return
-        elif len(arg.split(" ")) > 1:
-            key = arg.split()[0] + '.' + arg.split()[1]
+        elif len(arg.split(" ")) > 1 and arg.split(" ")[1] != "":
+            key = arg.split(" ")[0] + '.' + arg.split(" ")[1]
             if key in storage.all():
                 i = storage.all()
                 print(i[key])
@@ -73,7 +77,7 @@ class HBNBCommand(cmd.Cmd):
     def do_destroy(self, arg):
         """Usage: destroy <class> <id> or <class>.destroy(<id>)
         Delete a class instance of a given id."""
-        if len(arg) == 0:
+        if len(arg) == 0 or arg.split(" ")[0] == "":
             print("** class name missing **")
             return
         arg_list = arg.split(" ")
@@ -87,6 +91,9 @@ class HBNBCommand(cmd.Cmd):
             return
         if len(arg_list) > 1:
             key = arg_list[0] + '.' + arg_list[1]
+            if arg_list[1] == "":
+                print('** instance id missing **')
+                return
             if key in storage.all():
                 storage.all().pop(key)
                 storage.save()
@@ -98,12 +105,17 @@ class HBNBCommand(cmd.Cmd):
         """Usage: all or all <class> or <class>.all()
         Display string representations of all instances of a given class.
         If no class is specified, displays all instantiated objects."""
-        if len(arg) == 0:
-            print([str(a) for a in storage.all().values()])
-        elif arg not in self.classes:
+        argl = parse(arg)
+        if len(argl) > 0 and argl[0] not in HBNBCommand.classes:
             print("** class doesn't exist **")
         else:
-            print([str(a) for b, a in storage.all().items() if arg in b])
+            objl = []
+            for obj in storage.all().values():
+                if len(argl) > 0 and argl[0] == obj.__class__.__name__:
+                    objl.append(obj.__str__())
+                elif len(argl) == 0:
+                    objl.append(obj.__str__())
+            print(objl)
 
     def do_update(self, arg):
         """Usage: update <class> <id> <attribute_name> <attribute_value> or
@@ -111,38 +123,47 @@ class HBNBCommand(cmd.Cmd):
        <class>.update(<id>, <dictionary>)
         Update a class instance of a given id by adding or updating
         a given attribute key/value pair or dictionary."""
-        if not arg:
-            print("** class name missing **")
-            return
-        args = shlex.split(arg)
-        storage.reload()
-        obj = storage.all()
+        argl = parse(arg)
+        objdict = storage.all()
 
-        if args[0] not in self.classes.keys():
+        if len(argl) == 0:
+            print("** class name missing **")
+            return False
+        if argl[0] not in HBNBCommand.classes:
             print("** class doesn't exist **")
-            return
-        if len(args) == 1:
+            return False
+        if len(argl) == 1:
             print("** instance id missing **")
-            return
-        try:
-            key = args[0] + "." + args[1]
-            obj[key]
-        except KeyError:
+            return False
+        if "{}.{}".format(argl[0], argl[1]) not in objdict.keys():
             print("** no instance found **")
-            return
-        if (len(args) == 2):
+            return False
+        if len(argl) == 2:
             print("** attribute name missing **")
-            return
-        if (len(args) == 3):
-            print("** value missing **")
-            return
-        obj_dict = obj[key].__dict__
-        if args[2] in obj_dict.keys():
-            d_type = type(obj_dict[arg[2]])
-            print(d_type)
-            obj_dict[args[2]] = type(obj_dict[args[2]])(args[3])
-        else:
-            obj_dict[args[2]] = args[3]
+            return False
+        if len(argl) == 3:
+            try:
+                type(eval(argl[2])) != dict
+            except NameError:
+                print("** value missing **")
+                return False
+
+        if len(argl) == 4:
+            obj = objdict["{}.{}".format(argl[0], argl[1])]
+            if argl[2] in obj.__class__.__dict__.keys():
+                valtype = type(obj.__class__.__dict__[argl[2]])
+                obj.__dict__[argl[2]] = valtype(argl[3])
+            else:
+                obj.__dict__[argl[2]] = argl[3]
+        elif type(eval(argl[2])) == dict:
+            obj = objdict["{}.{}".format(argl[0], argl[1])]
+            for k, v in eval(argl[2]).items():
+                if (k in obj.__class__.__dict__.keys() and
+                        type(obj.__class__.__dict__[k]) in {str, int, float}):
+                    valtype = type(obj.__class__.__dict__[k])
+                    obj.__dict__[k] = valtype(v)
+                else:
+                    obj.__dict__[k] = v
         storage.save()
 
     def do_count(self, class_n):
@@ -160,7 +181,7 @@ class HBNBCommand(cmd.Cmd):
             print("** class name missing **")
             return
         dict = "{" + arg.split("{")[1]
-        args = shlex.split(arg)
+        args = split(arg)
         storage.reload()
         obj = storage.all()
 
@@ -185,7 +206,7 @@ class HBNBCommand(cmd.Cmd):
         for k in dict:
             if hasattr(obj_inst, k):
                 d_type = type(getattr(obj_inst, k))
-                setattr(obj_inst, k, dict[k])
+                setattr(obj_inst, d_type(k), dict[k])
             else:
                 setattr(obj_inst, k, dict[k])
         storage.save()
@@ -199,38 +220,35 @@ class HBNBCommand(cmd.Cmd):
             "destroy": self.do_destroy,
             "update": self.do_update,
         }
-        args = arg.strip()
-        val = args.split(".")
-        if len(val) != 2:
-            cmd.Cmd.default(self, args)
-            return
-        class_name = val[0]
-        cmd = val[1].split("(")[0]
-        line = ""
-        if (cmd == "update" and val[1].split("(")[1][-2] == "}"):
-            inputs = val[1].split("(")[1].split(",", 1)
-            inputs[0] = shlex.split(inputs[0])[0]
-            line = "".join(inputs)[0:-1]
-            line = class_name + " " + line
-            self.update_dict(line.strip())
-            return
-
-        try:
-            inputs = val[1].split("(")[1].split(",")
-            for num in range(len(inputs)):
-                if (num != len(inputs) - 1):
-                    line = line + " " + shlex.split(inputs[num])[0]
-                else:
-                    line = line + " " + shlex.split(inputs[num][0:-1])[0]
-        except IndexError:
-            inputs = ""
-            line = ""
-        line = class_name + line
-        if (cmd in args_dict.keys()):
-            args_dict[cmd](line.strip())
-        else:
-            print("*** Unknown syntax: {}".format(arg))
+        match = re.search(r"\.", arg)
+        if match is not None:
+            argl = [arg[:match.span()[0]], arg[match.span()[1]:]]
+            match = re.search(r"\((.*?)\)", argl[1])
+            if match is not None:
+                command = [argl[1][:match.span()[0]], match.group()[1:-1]]
+                if command[0] in args_dict.keys():
+                    call = "{} {}".format(argl[0], command[1])
+                    return args_dict[command[0]](call)
+        print("*** Unknown syntax: {}".format(arg))
+        return False
 
 
 if __name__ == "__main__":
     HBNBCommand().cmdloop()
+
+def parse(arg):
+    curly_braces = re.search(r"\{(.*?)\}", arg)
+    brackets = re.search(r"\[(.*?)\]", arg)
+    if curly_braces is None:
+        if brackets is None:
+            return [i.strip(",") for i in split(arg)]
+        else:
+            lexer = split(arg[:brackets.span()[0]])
+            retl = [i.strip(",") for i in lexer]
+            retl.append(brackets.group())
+            return retl
+    else:
+        lexer = split(arg[:curly_braces.span()[0]])
+        retl = [i.strip(",") for i in lexer]
+        retl.append(curly_braces.group())
+        return retl
