@@ -50,7 +50,7 @@ class test_basemodel(unittest.TestCase):
         i1 = BaseModel()
         i2 = BaseModel()
         self.assertNotEqual(i1.id, i2.id)
-    
+
     def test_two_models_different_created_at(self):
         i1 = BaseModel()
         sleep(0.05)

@@ -3,6 +3,7 @@
 import unittest
 from models.place import Place
 
+
 class test_Place(unittest.TestCase):
     """ """
     def __init__(self, *args, **kwargs):
