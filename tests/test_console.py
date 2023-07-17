@@ -22,7 +22,7 @@ class TestHBNBCommand(unittest.TestCase):
             os.rename("file.json", "tmp")
         except IOError:
             pass
-        FileStorage.__objects = {}
+        FileStorage._FileStorage__objects = {}
 
     @classmethod
     def tearDown(self):
@@ -34,6 +34,7 @@ class TestHBNBCommand(unittest.TestCase):
             os.rename("tmp", "file.json")
         except IOError:
             pass
+        storage.reload()
 
     def test_prompt_string(self):
         self.assertEqual("(hbnb) ", HBNBCommand.prompt)
